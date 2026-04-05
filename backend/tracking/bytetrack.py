@@ -6,7 +6,14 @@ from backend.analytics.crowd_analysis import CrowdAnalyzer
 from backend.detection.yolo_detector import YOLODetector
 from backend.events.abandoned_object import AbandonedDetector
 from backend.events.fall_detection import FallDetector
-from backend.analytics.face_capture import FaceCapture
+
+
+# -----------------------------
+# Temporary Face Capture Class
+# -----------------------------
+class FaceCapture:
+    def capture(self, frame, track_id, bbox):
+        pass
 
 
 # Models
@@ -94,7 +101,7 @@ def process_frame(frame):
         y2 = int(y2 + padding)
 
 
-        # Face Capture
+        # Face Capture Disabled Safe Mode
         if cls == 0:
             face_capture.capture(
                 frame,
@@ -127,20 +134,20 @@ def process_frame(frame):
 
     try:
         events.extend(abandoned.update(tracks))
-    except:
-        pass
+    except Exception as e:
+        print("Abandoned Error:", e)
 
 
     try:
         events.extend(fall.update(tracks))
-    except:
-        pass
+    except Exception as e:
+        print("Fall Error:", e)
 
 
     try:
         events.extend(crowd.analyze(tracks))
-    except:
-        pass
+    except Exception as e:
+        print("Crowd Error:", e)
 
 
     normalized_events = []

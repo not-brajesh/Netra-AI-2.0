@@ -1,9 +1,49 @@
+import sys
+import os
+
+# -----------------------
+# FIX ROOT PATH
+# -----------------------
+
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
+
+# -----------------------
+# IMPORTS
+# -----------------------
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
 
-app = FastAPI()
+import cv2
+import time
+import threading
 
-# ✅ CORS (frontend connect ke liye)
+
+# -----------------------
+# NETRA MODULES
+# -----------------------
+
+from backend.tracking.bytetrack import process_frame
+from backend.summary.nl_summary import SummaryEngine
+from backend.alerts.alert_engine import AlertEngine
+
+
+# -----------------------
+# APP INIT
+# -----------------------
+
+app = FastAPI(title="NETRA AI Backend")
+
+
+# -----------------------
+# CORS
+# -----------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,57 +52,184 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Home route
+
+# -----------------------
+# HOME
+# -----------------------
+
 @app.get("/")
 def home():
-    return {
-        "message": "NETRA AI Backend Running 🚀"
-    }
+    return {"message": "NETRA AI Backend Running 🚀"}
 
-# ✅ Status API (real-time data)
+
+# -----------------------
+# GLOBAL VARIABLES
+# -----------------------
+
+camera = cv2.VideoCapture(0)
+
+summary_engine = SummaryEngine()
+alert_engine = AlertEngine()
+
+latest_frame = None
+latest_alert = "Monitoring..."
+summary_result = "Monitoring Started..."
+
+all_events = []
+
+
+# -----------------------
+# SUMMARY THREAD
+# -----------------------
+
+def summary_worker():
+
+    global summary_result
+
+    while True:
+
+        try:
+
+            if len(all_events) > 0:
+
+                summary = summary_engine.generate_summary(all_events)
+
+                if summary:
+                    summary_result = summary
+
+        except Exception as e:
+            print("Summary Error:", e)
+
+        time.sleep(5)
+
+
+# -----------------------
+# FRAME THREAD
+# -----------------------
+
+def frame_worker():
+
+    global latest_frame
+    global latest_alert
+    global all_events
+
+    while True:
+
+        try:
+
+            success, frame = camera.read()
+
+            if not success:
+                continue
+
+            frame, events = process_frame(frame)
+
+            if events:
+                all_events.extend(events)
+
+            alerts = alert_engine.process(events)
+
+            if alerts:
+                latest_alert = str(alerts[-1])
+
+            latest_frame = frame
+
+        except Exception as e:
+            print("Frame Error:", e)
+
+        time.sleep(0.03)
+
+
+# -----------------------
+# START THREADS
+# -----------------------
+
+threading.Thread(
+    target=summary_worker,
+    daemon=True
+).start()
+
+
+threading.Thread(
+    target=frame_worker,
+    daemon=True
+).start()
+
+
+# -----------------------
+# VIDEO STREAM
+# -----------------------
+
+def generate():
+
+    global latest_frame
+
+    while True:
+
+        if latest_frame is None:
+            time.sleep(0.03)
+            continue
+
+        ret, buffer = cv2.imencode(".jpg", latest_frame)
+
+        if not ret:
+            continue
+
+        frame = buffer.tobytes()
+
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' +
+            frame +
+            b'\r\n'
+        )
+
+        time.sleep(0.03)
+
+
+@app.get("/video")
+def video():
+
+    return StreamingResponse(
+        generate(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+
+# -----------------------
+# STATUS API
+# -----------------------
+
 @app.get("/status")
 def status():
-    return {
-        "people_count": 5,
-        "alert": "No threat detected",
-        "activity": "Normal movement"
-    }
 
-# ✅ Health check
-@app.get("/health")
-def health():
-    return {
-        "status": "ok"
-    }
+    return JSONResponse({
+        "people_count": len(all_events),
+        "alert": latest_alert,
+        "activity": "Running"
+    })
 
-# 🔥 NEW: Smart Summary API (GAME CHANGER)
+
+# -----------------------
+# SUMMARY API
+# -----------------------
+
 @app.get("/summary")
 def summary():
+
+    return JSONResponse({
+        "summary": summary_result
+    })
+
+
+# -----------------------
+# HEALTH
+# -----------------------
+
+@app.get("/health")
+def health():
+
     return {
-        "summary": "Currently 5 people are present. No threats detected. Movement is normal and environment is safe."
+        "status": "ok",
+        "camera": camera.isOpened()
     }
-
-# 🔥 NEW: Chat API (dynamic response)
-@app.get("/chat")
-def chat(query: str):
-    query = query.lower()
-
-    if "kya ho raha" in query or "what is happening" in query:
-        return {
-            "response": "5 people are present. No threat detected. Everything is normal."
-        }
-
-    elif "kitne log" in query or "people" in query:
-        return {
-            "response": "Currently 5 people are detected."
-        }
-
-    elif "alert" in query:
-        return {
-            "response": "No alerts right now. System is safe."
-        }
-
-    else:
-        return {
-            "response": "System is running normally. No unusual activity detected."
-        }

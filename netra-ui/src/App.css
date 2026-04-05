@@ -1,0 +1,158 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+
+.sidebar {
+  width: 250px;
+  background: #0f172a;
+  color: white;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  color: #22c55e;
+  margin-bottom: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.sidebar li:hover {
+  background: #1e293b;
+}
+
+
+/* Main */
+
+.main {
+  flex: 1;
+  background: #f1f5f9;
+}
+
+.topbar {
+  padding: 15px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+}
+
+
+/* Dashboard */
+
+.dashboard {
+  padding: 20px;
+}
+
+.cards {
+  display: flex;
+  gap: 20px;
+}
+
+
+/* Card */
+
+.card {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Camera */
+
+.camera {
+  margin-top: 30px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.camera-box {
+  height: 300px;
+  background: black;
+  border-radius: 10px;
+  margin-top: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Chat */
+
+.chat {
+  margin-top: 30px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.chat-box {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.chat-box input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.chat-box button {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.camera-feed {
+
+  width: 100%;
+  height: 350px;
+  object-fit: cover;
+  border-radius: 10px;
+
+}
+
+.alert {
+
+  background: #fee2e2;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 8px;
+
+}
+
+.alerts {
+
+  margin-top: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+
+}

@@ -1,54 +1,53 @@
-import cv2
 import numpy as np
+import cv2
 
 
-def extract_feature(frame, bbox):
+class PersonReID:
 
-    x1,y1,x2,y2 = bbox
+    def __init__(self):
+        self.database = {}
 
-    person = frame[y1:y2, x1:x2]
+    def extract_feature(self, image):
 
-    if person.size == 0:
+        image = cv2.resize(image, (64,128))
+        feature = image.flatten().astype("float32")
+
+        norm = np.linalg.norm(feature)
+
+        if norm == 0:
+            return feature
+
+        feature = feature / norm
+
+        return feature
+
+
+    def register(self, person_id, image):
+
+        feature = self.extract_feature(image)
+
+        self.database[person_id] = feature
+
+
+    def match(self, image):
+
+        if len(self.database) == 0:
+            return None
+
+        feature = self.extract_feature(image)
+
+        best_id = None
+        best_score = 0
+
+        for pid, stored in self.database.items():
+
+            score = np.dot(feature, stored)
+
+            if score > best_score:
+                best_score = score
+                best_id = pid
+
+        if best_score > 0.85:
+            return best_id
+
         return None
-
-    person = cv2.resize(person,(64,128))
-
-    # Color histogram
-    hist = cv2.calcHist(
-        [person],
-        [0,1,2],
-        None,
-        [8,8,8],
-        [0,256,0,256,0,256]
-    )
-
-    cv2.normalize(hist, hist)
-
-    # shape feature
-    h,w,_ = person.shape
-    shape = np.array([h/w])
-
-    feature = np.concatenate([
-        hist.flatten(),
-        shape
-    ])
-
-    return feature
-
-
-def compare_features(f1, f2):
-
-    if f1 is None or f2 is None:
-        return 0
-
-    hist_score = cv2.compareHist(
-        f1[:-1].astype("float32"),
-        f2[:-1].astype("float32"),
-        cv2.HISTCMP_CORREL
-    )
-
-    shape_score = 1 - abs(f1[-1] - f2[-1])
-
-    final_score = 0.8 * hist_score + 0.2 * shape_score
-
-    return final_score
